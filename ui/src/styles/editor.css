@@ -1,0 +1,22 @@
+.body-editor { position: fixed; inset: 0; z-index: 110; background: var(--bg); display: flex; flex-direction: column; }
+.be-head { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--surface); border-bottom: 1px solid var(--border); flex: none; }
+.be-file { font-weight: 600; }
+.be-note { font-size: 12px; }
+.be-body { flex: 1; min-height: 0; overflow: auto; display: flex; justify-content: center; }
+.be-body .visual { width: min(860px, 100%); padding: 24px 16px 80px; }
+.be-body .source-area { width: min(980px, 100%); height: 100%; border-radius: 0; border: 0; resize: none; padding: 20px; font-size: 13px; line-height: 1.6; background: var(--bg); }
+
+/* Map the Crepe frame-dark theme onto the app palette and keep fonts local. */
+.be-body .milkdown {
+  --crepe-color-background: var(--bg);
+  --crepe-color-surface: var(--surface);
+  --crepe-color-surface-low: var(--surface-2);
+  --crepe-color-primary: #a5b4fc;
+  --crepe-color-hover: #2a2a2a;
+  --crepe-color-selected: #34345a;
+  --crepe-font-title: system-ui, -apple-system, sans-serif;
+  --crepe-font-default: system-ui, -apple-system, sans-serif;
+  --crepe-font-code: "SF Mono", Monaco, Menlo, monospace;
+  --crepe-base-font-size: 16px;
+}
+.be-body .milkdown .ProseMirror { padding: 0 8px; outline: none; }

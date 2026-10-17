@@ -1,0 +1,17 @@
+:root {
+  --bg: #1e1e1e;
+  --surface: #252526;
+  --surface-2: #2d2d2d;
+  --border: #3d3d3d;
+  --text: #e5e5e5;
+  --muted: #9ca3af;
+  --primary: #6366f1;
+  --primary-strong: #4f46e5;
+  --danger: #ef4444;
+  --ok: #22c55e;
+  --warn: #f59e0b;
+  --radius: 6px;
+  --font: system-ui, -apple-system, sans-serif;
+  --mono: "SF Mono", Monaco, Menlo, monospace;
+  color-scheme: dark;
+}
