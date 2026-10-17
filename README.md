@@ -24,6 +24,38 @@ Cmd+click follows links while editing; **Naviga** mode turns editing off. Cmd+E 
 
 Runs the same engine in a Chromium app window (`chromium --app=URL`), no Swift shell.
 
+### Quick start on Omarchy
+
+Omarchy already ships `git`, `mise` and Chromium. Step by step:
+
+```sh
+# 1. Ruby + Bundler (skip if you already have them)
+mise use -g ruby@3.3
+gem install bundler
+
+# 2. Optional: graphical folder picker for "Altra cartella…"
+sudo pacman -S --needed zenity
+
+# 3. Get and install Jekyll Canvas (no Node/npm needed: the UI is prebuilt)
+git clone git@github.com:giovapanasiti/jekyll_canvas.git ~/Code/jekyll_canvas
+cd ~/Code/jekyll_canvas
+make install-linux
+
+# 4. Make sure your site builds once
+cd ~/path/to/site && bundle install && bundle exec jekyll build
+```
+
+Then press Super+Space, type "Jekyll Canvas" and pick the site (or run
+`jekyll-canvas ~/path/to/site`). If `~/.local/bin` is not on your PATH, the walker entry still
+works because the desktop file uses the absolute path.
+
+If your sites pin Ruby with `.ruby-version`, let mise honour it:
+`mise settings add idiomatic_version_file_enable_tools ruby`.
+
+To update later: `cd ~/Code/jekyll_canvas && git pull && make install-linux`.
+
+### Details
+
 Requirements: Ruby managed by `mise` (or asdf/rbenv/system), Bundler, a Chromium-family
 browser (Chromium, Chrome, Brave, Edge; override with `JEKYLL_CANVAS_BROWSER`), optionally
 `zenity` (or `kdialog`) for the folder picker. The site must build with `bundle exec jekyll build`.
