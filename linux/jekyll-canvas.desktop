@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Jekyll Canvas
+Comment=Modifica visualmente un sito Jekyll
+Exec=@BIN@ %f
+Icon=@ICON@
+Terminal=false
+Categories=Development;WebDevelopment;
+StartupWMClass=JekyllCanvas

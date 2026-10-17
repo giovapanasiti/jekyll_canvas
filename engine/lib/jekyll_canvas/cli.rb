@@ -21,8 +21,21 @@ module JekyllCanvas
       opts
     end
 
+    def darwin?
+      RUBY_PLATFORM.match?(/darwin/)
+    end
+
     def default_cache_dir(root)
-      File.join(Dir.home, "Library", "Caches", "JekyllCanvas", Digest::SHA1.hexdigest(File.realpath(root))[0, 12])
+      hash = Digest::SHA1.hexdigest(File.realpath(root))[0, 12]
+      return File.join(Dir.home, "Library", "Caches", "JekyllCanvas", hash) if darwin?
+
+      xdg = ENV["XDG_CACHE_HOME"].to_s
+      base = xdg.empty? ? File.join(Dir.home, ".cache") : xdg
+      File.join(base, "jekyll-canvas", hash)
+    end
+
+    def open_command
+      darwin? ? "open" : "xdg-open"
     end
 
     def run(argv)
@@ -64,7 +77,7 @@ module JekyllCanvas
       real_stdout.flush
       watcher.start
       watch_parent_stdin(stop) if ENV["JC_EXIT_ON_STDIN_EOF"] == "1"
-      system("open", server.url) if opts[:open]
+      system(open_command, server.url) if opts[:open]
       server_thread.join
       0
     end

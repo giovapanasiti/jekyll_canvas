@@ -20,6 +20,39 @@ source it came from. Design: `docs/design.md`. Specs: `tasks/`.
 
 Cmd+click follows links while editing; **Naviga** mode turns editing off. Cmd+E toggles.
 
+## Linux (Omarchy)
+
+Runs the same engine in a Chromium app window (`chromium --app=URL`), no Swift shell.
+
+Requirements: Ruby managed by `mise` (or asdf/rbenv/system), Bundler, a Chromium-family
+browser (Chromium, Chrome, Brave, Edge; override with `JEKYLL_CANVAS_BROWSER`), optionally
+`zenity` (or `kdialog`) for the folder picker. The site must build with `bundle exec jekyll build`.
+
+```sh
+make install-linux      # engine -> ~/.local/share/jekyll-canvas/engine, launcher -> ~/.local/bin,
+                        # desktop entry + icon -> ~/.local/share (no npm needed)
+```
+
+Launch "Jekyll Canvas" from walker (it offers recent sites and "Altra cartella…"), or from a
+terminal: `jekyll-canvas ~/path/to/site`. The launcher also runs straight from a checkout:
+`linux/jekyll-canvas ~/path/to/site`. Closing the window stops the engine.
+
+Hyprland window rule (the app window has class `JekyllCanvas`), e.g. in `hyprland.conf`:
+
+```
+windowrulev2 = size 1400 900, class:^(JekyllCanvas)$
+windowrulev2 = center, class:^(JekyllCanvas)$
+```
+
+(Hyprland 0.53+ renamed the syntax: `windowrule = size 1400 900, match:class ^(JekyllCanvas)$`.)
+
+Logs: `~/.local/state/jekyll-canvas/logs/<site>.log`. Recent sites:
+`~/.config/jekyll-canvas/recents`. Browser profile: `~/.local/state/jekyll-canvas/browser-profile/`.
+If start-up fails, a notification points at the log; "Could not find ..." usually means
+`bundle install` is needed in the site folder.
+
+Uninstall: `make uninstall-linux` (add `DATA=` / `BIN=` if you installed elsewhere).
+
 ## Develop
 
 - Engine: `cd engine && bundle install && bundle exec rake test`. Run it on a site without

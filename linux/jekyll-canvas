@@ -1,0 +1,335 @@
+#!/usr/bin/env bash
+# Jekyll Canvas launcher for Linux (tested design target: Omarchy / Hyprland).
+# Starts the Ruby engine for a Jekyll site and shows the editor in a Chromium app window.
+set -euo pipefail
+
+APP_NAME="Jekyll Canvas"
+OTHER_FOLDER="Altra cartella…"
+READY_TIMEOUT=90
+
+state_home="${XDG_STATE_HOME:-$HOME/.local/state}/jekyll-canvas"
+config_home="${XDG_CONFIG_HOME:-$HOME/.config}/jekyll-canvas"
+data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+recents_file="$config_home/recents"
+log_dir="$state_home/logs"
+runtime_dir="${XDG_RUNTIME_DIR:-/tmp}/jekyll-canvas-$$"
+
+engine_pid=""
+browser_pid=""
+cleaned=0
+
+usage() {
+  cat <<'USAGE'
+Usage: jekyll-canvas [SITE_DIR]
+
+Opens SITE_DIR (a Jekyll site) in Jekyll Canvas. Without SITE_DIR, pick one from
+the recent sites or choose a folder.
+
+Environment:
+  JEKYLL_CANVAS_ENGINE   engine directory (default: ~/.local/share/jekyll-canvas/engine)
+  JEKYLL_CANVAS_BROWSER  browser command to use instead of the Chromium auto-detection
+USAGE
+}
+
+have() { command -v "$1" >/dev/null 2>&1; }
+
+notify() {
+  # notify <urgency> <message>
+  if have notify-send; then
+    notify-send -u "$1" "$APP_NAME" "$2" || true
+  fi
+}
+
+# --- engine / recents -------------------------------------------------------
+
+script_path="${BASH_SOURCE[0]}"
+if resolved="$(readlink -f "$script_path" 2>/dev/null)" && [[ -n "$resolved" ]]; then
+  script_path="$resolved"
+fi
+script_dir="$(cd "$(dirname "$script_path")" && pwd -P)"
+
+find_engine() {
+  local candidate
+  for candidate in \
+    "${JEKYLL_CANVAS_ENGINE:-}" \
+    "$data_home/jekyll-canvas/engine" \
+    "$script_dir/../engine"; do
+    if [[ -n "$candidate" && -f "$candidate/exe/jekyll-canvas-server" ]]; then
+      (cd "$candidate" && pwd -P)
+      return 0
+    fi
+  done
+  return 1
+}
+
+read_recents() {
+  # Existing directories only, newest first, at most 10.
+  local line count=0
+  [[ -f "$recents_file" ]] || return 0
+  while IFS= read -r line; do
+    [[ -n "$line" && -d "$line" ]] || continue
+    printf '%s\n' "$line"
+    count=$((count + 1))
+    [[ $count -lt 10 ]] || break
+  done <"$recents_file"
+}
+
+store_recent() {
+  local site="$1" line tmp
+  mkdir -p "$config_home"
+  tmp="$recents_file.$$"
+  {
+    printf '%s\n' "$site"
+    if [[ -f "$recents_file" ]]; then
+      while IFS= read -r line; do
+        if [[ -n "$line" && "$line" != "$site" ]]; then
+          printf '%s\n' "$line"
+        fi
+      done <"$recents_file"
+    fi
+  } | head -n 10 >"$tmp"
+  mv "$tmp" "$recents_file"
+}
+
+# --- choosing a site --------------------------------------------------------
+
+run_menu() {
+  # Reads the entries on stdin, prints the choice. Empty output = cancelled.
+  if have walker; then
+    walker --dmenu || true
+  elif have fuzzel; then
+    fuzzel --dmenu || true
+  elif have wofi; then
+    wofi --dmenu || true
+  elif have rofi; then
+    rofi -dmenu || true
+  else
+    return 1
+  fi
+}
+
+have_menu() {
+  have walker || have fuzzel || have wofi || have rofi
+}
+
+pick_folder() {
+  # Prints the chosen folder (empty if cancelled); returns 1 when no picker exists.
+  if have zenity; then
+    zenity --file-selection --directory --title="Scegli un sito Jekyll" || true
+  elif have kdialog; then
+    kdialog --getexistingdirectory "$HOME" || true
+  else
+    return 1
+  fi
+}
+
+choose_site() {
+  local recents choice
+  recents="$(read_recents)"
+  if [[ -n "$recents" ]] && have_menu; then
+    choice="$({ printf '%s\n' "$recents"; printf '%s\n' "$OTHER_FOLDER"; } | run_menu)"
+    [[ -n "$choice" ]] || return 0 # cancelled
+    if [[ "$choice" != "$OTHER_FOLDER" ]]; then
+      printf '%s\n' "$choice"
+      return 0
+    fi
+  fi
+  if ! pick_folder; then
+    usage >&2
+    notify normal "Nessun selettore di cartelle trovato (zenity o kdialog): avvia con jekyll-canvas /percorso/del/sito"
+    return 1
+  fi
+}
+
+# --- process control --------------------------------------------------------
+
+descendants() {
+  # PIDs of all descendants of $1 (needs pgrep; silent otherwise).
+  local child
+  have pgrep || return 0
+  for child in $(pgrep -P "$1" 2>/dev/null || true); do
+    descendants "$child"
+    printf '%s\n' "$child"
+  done
+}
+
+stop_engine() {
+  local pids pid i
+  [[ -n "$engine_pid" ]] || return 0
+  if kill -0 "$engine_pid" 2>/dev/null; then
+    pids="$(descendants "$engine_pid")"
+    kill -TERM "$engine_pid" 2>/dev/null || true
+    for i in $(seq 1 30); do
+      kill -0 "$engine_pid" 2>/dev/null || break
+      sleep 0.1
+    done
+    if kill -0 "$engine_pid" 2>/dev/null; then
+      kill -KILL "$engine_pid" 2>/dev/null || true
+    fi
+    for pid in $pids; do
+      kill -KILL "$pid" 2>/dev/null || true
+    done
+  fi
+  wait "$engine_pid" 2>/dev/null || true
+  engine_pid=""
+}
+
+cleanup() {
+  [[ $cleaned -eq 0 ]] || return 0
+  cleaned=1
+  trap '' INT TERM
+  if [[ -n "$browser_pid" ]] && kill -0 "$browser_pid" 2>/dev/null; then
+    kill -TERM "$browser_pid" 2>/dev/null || true
+  fi
+  stop_engine
+  exec 3>&- 2>/dev/null || true
+  rm -rf "$runtime_dir"
+}
+
+pick_browser() {
+  # Fills the global array `browser_cmd` with the command to run (without arguments).
+  local candidate
+  browser_cmd=()
+  if [[ -n "${JEKYLL_CANVAS_BROWSER:-}" ]]; then
+    read -r -a browser_cmd <<<"$JEKYLL_CANVAS_BROWSER"
+    return 0
+  fi
+  for candidate in chromium google-chrome-stable google-chrome brave brave-browser microsoft-edge-stable; do
+    if have "$candidate"; then
+      browser_cmd=("$candidate")
+      return 0
+    fi
+  done
+  return 1
+}
+
+fail_start() {
+  local name="$1" hint=""
+  if grep -qiE 'bundler|could not find' "$log_file" 2>/dev/null; then
+    hint="Prova bundle install nella cartella del sito"
+  fi
+  notify critical "Impossibile avviare $name — vedi $log_file${hint:+. $hint}"
+  {
+    echo "jekyll-canvas: impossibile avviare $name — log: $log_file"
+    [[ -z "$hint" ]] || echo "$hint"
+    tail -n 30 "$log_file" 2>/dev/null || true
+  } >&2
+  exit 1
+}
+
+# --- main -------------------------------------------------------------------
+
+main() {
+  local site="" engine name url i
+
+  case "${1:-}" in
+    -h | --help)
+      usage
+      exit 0
+      ;;
+  esac
+
+  if [[ $# -ge 1 ]]; then
+    site="$1"
+  else
+    site="$(choose_site)" || exit 1
+    [[ -n "$site" ]] || exit 0 # cancelled
+  fi
+
+  if [[ ! -d "$site" ]]; then
+    notify critical "Cartella non trovata: $site"
+    echo "jekyll-canvas: not a directory: $site" >&2
+    exit 1
+  fi
+  site="$(cd "$site" && pwd -P)"
+  name="$(basename "$site")"
+
+  if [[ ! -f "$site/_config.yml" && ! -f "$site/_config.yaml" && ! -f "$site/_config.toml" ]]; then
+    notify critical "$site non sembra un sito Jekyll (manca _config.yml)"
+    echo "jekyll-canvas: $site has no _config.yml|_config.yaml|_config.toml" >&2
+    exit 1
+  fi
+
+  if ! engine="$(find_engine)"; then
+    notify critical "Motore non trovato: imposta JEKYLL_CANVAS_ENGINE o esegui make install-linux"
+    echo "jekyll-canvas: engine not found (set JEKYLL_CANVAS_ENGINE or run make install-linux)" >&2
+    exit 1
+  fi
+
+  store_recent "$site"
+
+  mkdir -p "$log_dir"
+  log_file="$log_dir/$name.log"
+  : >"$log_file"
+
+  mkdir -p "$runtime_dir"
+  chmod 700 "$runtime_dir"
+  trap 'exit 130' INT
+  trap 'exit 143' TERM
+  trap cleanup EXIT
+
+  # The launcher holds the FIFO open read-write on fd 3; the engine reads it as
+  # stdin (fd 3 is closed in the child). If the launcher dies, the engine sees EOF.
+  mkfifo "$runtime_dir/stdin"
+  exec 3<>"$runtime_dir/stdin"
+
+  local -a runner=()
+  if have mise; then
+    runner+=(mise exec --)
+  fi
+  if [[ -f "$site/Gemfile" ]]; then
+    runner+=(bundle exec)
+  fi
+
+  (
+    local dir
+    for dir in "$HOME/.local/share/mise/shims" "$HOME/.asdf/shims" "$HOME/.rbenv/shims" "$HOME/.local/bin"; do
+      if [[ -d "$dir" ]]; then
+        PATH="$dir:$PATH"
+      fi
+    done
+    export PATH
+    export JC_EXIT_ON_STDIN_EOF=1
+    cd "$site"
+    exec "${runner[@]}" ruby -I"$engine/lib" "$engine/exe/jekyll-canvas-server" --site "$site" \
+      <"$runtime_dir/stdin" >"$log_file" 2>&1 3>&-
+  ) &
+  engine_pid=$!
+
+  url=""
+  for ((i = 0; i < READY_TIMEOUT * 5; i++)); do
+    url="$(sed -n 's/^JEKYLL_CANVAS_READY //p' "$log_file" 2>/dev/null | head -n 1 | tr -d '\r')"
+    [[ -z "$url" ]] || break
+    if ! kill -0 "$engine_pid" 2>/dev/null; then
+      # One last look: the ready line may have landed just before exit.
+      url="$(sed -n 's/^JEKYLL_CANVAS_READY //p' "$log_file" 2>/dev/null | head -n 1 | tr -d '\r')"
+      [[ -z "$url" ]] || break
+      engine_pid=""
+      fail_start "$name"
+    fi
+    sleep 0.2
+  done
+  [[ -n "$url" ]] || fail_start "$name"
+
+  local -a browser_cmd=()
+  if pick_browser; then
+    local profile="$state_home/browser-profile/$name"
+    mkdir -p "$profile"
+    "${browser_cmd[@]}" "--app=$url" "--user-data-dir=$profile" --class=JekyllCanvas \
+      --no-first-run --no-default-browser-check 3>&- &
+    browser_pid=$!
+    wait "$browser_pid" || true
+    browser_pid=""
+    exit 0 # EXIT trap stops the engine
+  fi
+
+  if have xdg-open; then
+    xdg-open "$url" 3>&- || true
+  fi
+  echo "Jekyll Canvas in esecuzione su $url" >&2
+  echo "Nessun browser Chromium trovato: premi Ctrl+C per fermare il motore." >&2
+  wait "$engine_pid" || true
+  engine_pid=""
+}
+
+main "$@"
