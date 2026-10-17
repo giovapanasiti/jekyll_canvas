@@ -2,8 +2,8 @@ import { useEffect, useState } from 'preact/hooks';
 import { useStore, setState } from '../store.js';
 import { overlay } from '../overlay/index.js';
 import { api } from '../api.js';
-import { refreshGit, toast } from '../actions.js';
-import { IconBack, IconForward, IconReload, IconPanel } from './icons.jsx';
+import { openCode, refreshGit, toast } from '../actions.js';
+import { IconBack, IconForward, IconReload, IconPanel, IconCode } from './icons.jsx';
 import { normUrl } from '../util.js';
 
 function BuildStatus() {
@@ -77,6 +77,12 @@ export function Toolbar() {
         <button class={mode === 'edit' ? 'active' : ''} onClick={() => setState({ mode: 'edit' })}>✎ Modifica</button>
         <button class={mode === 'nav' ? 'active' : ''} onClick={() => setState({ mode: 'nav' })}>Naviga</button>
       </div>
+      <button
+        class="btn" title="Apri l'editor di codice (Cmd+Shift+E)"
+        onClick={() => openCode(page?.file || site?.templates?.layouts?.[0])}
+      >
+        <IconCode /> Codice
+      </button>
       <BuildStatus />
       {changes !== null && (
         <button class="btn" onClick={() => setState({ changesOpen: true })}>

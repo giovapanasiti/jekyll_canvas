@@ -5,7 +5,7 @@ import { EditorView, keymap } from '@codemirror/view';
 import { indentUnit } from '@codemirror/language';
 import { indentWithTab } from '@codemirror/commands';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { liquid } from '@codemirror/lang-liquid';
+import { liquidHtml } from './liquid-lang.js';
 import { markdown } from '@codemirror/lang-markdown';
 import { yaml } from '@codemirror/lang-yaml';
 import { css } from '@codemirror/lang-css';
@@ -19,7 +19,7 @@ import { IconClose } from '../components/icons.jsx';
 import { Modal } from '../components/Modal.jsx';
 
 const LANGUAGES = {
-  'liquid-html': { label: 'HTML + Liquid', ext: () => liquid() },
+  'liquid-html': { label: 'HTML + Liquid', ext: () => liquidHtml() },
   markdown: { label: 'Markdown', ext: () => markdown() },
   yaml: { label: 'YAML', ext: () => yaml() },
   scss: { label: 'SCSS / CSS', ext: () => css() },
