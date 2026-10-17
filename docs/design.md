@@ -33,6 +33,8 @@ files linked by `page_id`). It is only ever read; tests run on a `git clone` cop
    language next to the current one; language switch in the toolbar.
 7. Changes panel: git status, per-file diff, discard a file, commit.
 8. Picks up edits made outside the app (VS Code) and refreshes the preview.
+9. Code editor (CodeMirror, HTML + Liquid) for layouts, includes and page sources, with a
+   strict Liquid syntax check before saving (`tasks/spec-code-editor.md`).
 
 ## Non-goals (v1)
 

@@ -17,6 +17,7 @@ let state = {
   toasts: [],
   // modal state
   bodyEditor: false,
+  codeEditor: null, // { file, line, nonce }
   newDoc: null, // { collection, label }
   changesOpen: false,
   media: null, // { resolve }

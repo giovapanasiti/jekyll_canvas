@@ -137,7 +137,7 @@ module JekyllCanvas
       result = route_request(req, route)
       json(res, result)
     rescue ApiError => e
-      json(res, { ok: false, error: e.message, code: e.code }, e.status)
+      json(res, { ok: false, error: e.message, code: e.code }.merge(e.extra), e.status)
     rescue JSON::ParserError => e
       json(res, { ok: false, error: "invalid JSON: #{e.message}", code: "invalid" }, 422)
     rescue StandardError => e

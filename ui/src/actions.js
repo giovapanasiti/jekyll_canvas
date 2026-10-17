@@ -34,7 +34,8 @@ export async function refreshGit() {
 
 // Sends one edit op. Reloads the preview on success; handles conflicts and errors.
 // Throws on failure so callers can keep their editing UI open.
-export async function applyEdit(op, { reload = true } = {}) {
+// `handle` lists error codes the caller reports itself (no toast, no preview reload).
+export async function applyEdit(op, { reload = true, handle = [] } = {}) {
   setState((s) => ({ saving: s.saving + 1 }));
   try {
     const res = await api.edit(op);
@@ -48,7 +49,9 @@ export async function applyEdit(op, { reload = true } = {}) {
     refreshSite();
     return res;
   } catch (e) {
-    if (e.code === 'conflict') {
+    if (handle.includes(e.code)) {
+      // the caller shows its own message
+    } else if (e.code === 'conflict') {
       toast('Il file è cambiato, ricarico', 'warn');
       reloadPreview();
     } else {
@@ -58,6 +61,13 @@ export async function applyEdit(op, { reload = true } = {}) {
   } finally {
     setState((s) => ({ saving: s.saving - 1 }));
   }
+}
+
+// Opens the code editor on `file`, optionally at a 1-based `line`.
+let codeSeq = 0;
+export function openCode(file, line = null) {
+  if (!file) return;
+  setState({ codeEditor: { file, line, nonce: ++codeSeq } });
 }
 
 // --- dialogs rendered in-app (WKWebView may not implement window.confirm/prompt) ---

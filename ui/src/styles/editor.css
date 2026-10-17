@@ -20,3 +20,21 @@
   --crepe-base-font-size: 16px;
 }
 .be-body .milkdown .ProseMirror { padding: 0 8px; outline: none; }
+
+/* Code editor (CodeMirror) */
+.code-editor { position: fixed; inset: 0; z-index: 110; background: var(--bg); display: flex; flex-direction: column; }
+.ce-main { flex: 1; min-height: 0; display: flex; }
+.ce-files { width: 220px; flex: none; background: var(--surface); border-right: 1px solid var(--border); overflow: auto; padding: 4px 0 12px; }
+.ce-files h5 { margin: 10px 12px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.ce-filter { width: calc(100% - 16px) !important; margin: 2px 8px 4px; padding: 4px 8px !important; }
+.ce-sub { padding: 6px 12px 2px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); opacity: .75; }
+.ce-item { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; background: transparent; border: 0; border-left: 2px solid transparent; padding: 4px 10px 4px 12px; color: var(--text); }
+.ce-item:hover { background: var(--surface-2); }
+.ce-item.active { background: #2f2f4f; border-left-color: var(--primary); }
+.ce-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ce-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+.ce-pane { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+.ce-host { flex: 1; min-height: 0; }
+.ce-host .cm-editor { height: 100%; }
+.ce-bar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #3b1d1d; border-bottom: 1px solid #6b2a2a; color: #fecaca; }
+.ce-loading { position: absolute; top: 12px; right: 16px; display: flex; gap: 6px; align-items: center; }

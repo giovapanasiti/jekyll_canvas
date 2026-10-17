@@ -1,6 +1,7 @@
 import { useState } from 'preact/hooks';
 import { useStore, setState } from '../store.js';
 import { overlay } from '../overlay/index.js';
+import { openCode } from '../actions.js';
 import { normUrl } from '../util.js';
 import { IconPlus } from './icons.jsx';
 
@@ -44,6 +45,36 @@ function Group({ group, query, currentUrl, multiLang, currentLang }) {
   );
 }
 
+// Layouts and includes; clicking opens the code editor and leaves the preview where it is.
+function TemplateGroup({ templates, query }) {
+  const [open, setOpen] = useState(false);
+  const q = query.trim().toLowerCase();
+  const pick = (files) => (q ? files.filter((f) => f.toLowerCase().includes(q)) : files);
+  const layouts = pick(templates?.layouts || []);
+  const includes = pick(templates?.includes || []);
+  const total = (templates?.layouts?.length || 0) + (templates?.includes?.length || 0);
+  if (!total || (q && !layouts.length && !includes.length)) return null;
+  const list = (label, files) => files.length > 0 && (
+    <>
+      <div class="sub-head">{label}</div>
+      {files.map((f) => (
+        <div key={f} class="item" title={f} onClick={() => openCode(f)}>
+          <span class="title mono">{f.slice(f.indexOf('/') + 1)}</span>
+        </div>
+      ))}
+    </>
+  );
+  return (
+    <section>
+      <div class="group-head" onClick={() => setOpen(!open)}>
+        <span class={`chev ${open || q ? 'open' : ''}`}>›</span>
+        <span class="grow">Template<span class="count">{total}</span></span>
+      </div>
+      {(open || q) && <>{list('Layout', layouts)}{list('Include', includes)}</>}
+    </section>
+  );
+}
+
 export function Sidebar() {
   const site = useStore((s) => s.site);
   const currentUrl = useStore((s) => s.currentUrl);
@@ -62,6 +93,7 @@ export function Sidebar() {
             multiLang={site.languages.length > 1} currentLang={page?.lang || site.default_lang}
           />
         ))}
+        {site && <TemplateGroup templates={site.templates} query={query} />}
       </div>
     </aside>
   );

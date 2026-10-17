@@ -39,6 +39,7 @@ async function request(method, path, { query, body, form } = {}) {
     throw Object.assign(new Error(message), {
       code: (data && data.code) || (res.status === 404 ? 'not_found' : 'http'),
       status: res.status,
+      line: data && data.line,
     });
   }
   return data;

@@ -1,4 +1,4 @@
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 100; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: grid; place-items: center; z-index: 120; }
 .modal { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; width: min(460px, 92vw); max-height: 86vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.5); }
 .modal.wide { width: min(860px, 94vw); height: 78vh; }
 .modal.small { width: min(420px, 92vw); }

@@ -1,6 +1,6 @@
 import { useEffect } from 'preact/hooks';
-import { useStore, setState } from '../store.js';
-import { refreshGit, refreshSite } from '../actions.js';
+import { useStore, setState, getState } from '../store.js';
+import { openCode, refreshGit, refreshSite } from '../actions.js';
 import { startLive } from '../live.js';
 import { overlay } from '../overlay/index.js';
 import { isMod } from '../util.js';
@@ -12,6 +12,7 @@ import { ChangesDrawer } from './ChangesDrawer.jsx';
 import { NewDocDialog } from './NewDocDialog.jsx';
 import { MediaPicker } from './MediaPicker.jsx';
 import { BodyEditor } from '../editors/BodyEditor.jsx';
+import { CodeEditorHost } from '../editors/CodeEditor.jsx';
 import { DialogHost, ErrorBanner, Toasts } from './Feedback.jsx';
 
 export function App() {
@@ -22,10 +23,10 @@ export function App() {
     refreshGit();
     startLive();
     const onKey = (e) => {
-      if (isMod(e) && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        setState((s) => ({ mode: s.mode === 'edit' ? 'nav' : 'edit' }));
-      }
+      if (!isMod(e) || e.key.toLowerCase() !== 'e') return;
+      e.preventDefault();
+      if (e.shiftKey) openCode(getState().page?.file);
+      else setState((s) => ({ mode: s.mode === 'edit' ? 'nav' : 'edit' }));
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -45,6 +46,7 @@ export function App() {
       <ChangesDrawer />
       <NewDocDialog />
       <BodyEditor />
+      <CodeEditorHost />
       <MediaPicker />
       <DialogHost />
       <Toasts />

@@ -52,6 +52,22 @@ module JekyllCanvas
       abs[(real_root.length + 1)..]
     end
 
+    LANGUAGES = {
+      ".html" => "liquid-html", ".htm" => "liquid-html", ".liquid" => "liquid-html", ".xml" => "liquid-html",
+      ".md" => "markdown", ".markdown" => "markdown", ".yml" => "yaml", ".yaml" => "yaml",
+      ".scss" => "scss", ".sass" => "scss", ".css" => "scss", ".js" => "javascript", ".json" => "json"
+    }.freeze
+
+    # Editor language of a file, by extension (see spec-code-editor.md).
+    def language(path)
+      LANGUAGES.fetch(File.extname(path.to_s).downcase, "text")
+    end
+
+    # True when the first 8 KB of the file contain a NUL byte.
+    def binary?(abs)
+      File.binread(abs, 8192).to_s.include?("\0")
+    end
+
     def humanize(name)
       name.to_s.tr("_-", "  ").strip.sub(/\A./) { |c| c.upcase }
     end

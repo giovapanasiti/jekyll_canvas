@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import { applyEdit, pickMedia, toast } from '../actions.js';
+import { applyEdit, openCode, pickMedia, toast } from '../actions.js';
 import { isMod, joinKeypath } from '../util.js';
 import { useStore } from '../store.js';
 
@@ -8,6 +8,12 @@ function Source({ file, keypath, line }) {
     <div class="source mono" title={file}>
       {file}{keypath ? <> › {joinKeypath(keypath)}</> : null}{line ? `:${line}` : ''}
     </div>
+  );
+}
+
+function OpenInCode({ file, line }) {
+  return (
+    <button class="btn sm" style="margin-top:6px" onClick={() => openCode(file, line)}>Apri nel codice</button>
   );
 }
 
@@ -50,6 +56,7 @@ function StringPanel({ sel }) {
         onSave={saveYaml(sel.file, sel.keypath, sel.value)}
         note={sel.editable ? null : 'File non modificabile'}
       />
+      <OpenInCode file={sel.file} />
       {sel.siblings.length > 0 && (
         <>
           <h5>Altre lingue</h5>
@@ -81,6 +88,7 @@ function MdPanel({ sel }) {
           old_markdown: b.markdown, new_markdown: next,
         })}
       />
+      <OpenInCode file={b.file} line={b.start_line} />
     </>
   );
 }
@@ -93,6 +101,7 @@ function LiteralPanel({ sel }) {
       <div class="kind">Testo nel sorgente</div>
       <Source file={c.file} line={c.line} />
       <pre class="snippet mono">{c.snippet}</pre>
+      <OpenInCode file={c.file} line={c.line} />
     </>
   );
 }

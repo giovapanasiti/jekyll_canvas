@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require "liquid"
 require_relative "errors"
 require_relative "front_matter"
 require_relative "markdown_blocks"
@@ -25,6 +26,7 @@ module JekyllCanvas
                         when "md_block" then md_block(op)
                         when "body" then body(op)
                         when "front_matter_raw" then front_matter_raw(op)
+                        when "file" then file(op)
                         else raise ApiError.new("invalid", "unknown op #{op['op'].inspect}")
                         end
         write(path, content)
@@ -180,6 +182,41 @@ module JekyllCanvas
                       "---\n#{yaml_text}---\n#{content}"
                     end
       [abs, new_content]
+    end
+
+    # --- whole file (code editor) ---------------------------------------------------------------
+
+    def file(op)
+      require_fields(op, "file", "old_content", "new_content")
+      abs = resolve(op["file"])
+      raise ApiError.new("not_found", "file not found") unless File.file?(abs)
+      raise ApiError.new("invalid", "binary files cannot be edited") if Paths.binary?(abs)
+
+      content = read(abs)
+      raise ApiError.new("conflict", "the file changed outside the editor") unless content == op["old_content"].to_s
+
+      new_content = op["new_content"].to_s
+      check_liquid(op["file"], new_content) unless op["force"] == true
+      [abs, new_content]
+    end
+
+    # Liquid (strict) check for HTML/Markdown sources; front matter must be a YAML mapping.
+    def check_liquid(file, content)
+      return unless %w[liquid-html markdown].include?(Paths.language(file))
+
+      parts = FrontMatter.split(content)
+      if parts.front_matter? && FrontMatter.load_hash(parts.raw).nil?
+        raise ApiError.new("invalid", "the front matter must be a YAML mapping")
+      end
+
+      offset = parts.body_start_line - 1
+      begin
+        Liquid::Template.parse(parts.body, error_mode: :strict, line_numbers: true)
+      rescue Liquid::SyntaxError => e
+        line = e.line_number&.+(offset)
+        message = line ? e.message.sub(/\(line \d+\)/, "(line #{line})") : e.message
+        raise ApiError.new("liquid_syntax", message, extra: { line: line })
+      end
     end
   end
 end

@@ -453,6 +453,100 @@ class IntegrationTest < Minitest::Test
     assert_equal false, st["git"]
   end
 
+  # --- code editor: templates, /file, op "file" ----------------------------------------------------------
+
+  def test_site_lists_templates
+    FileUtils.mkdir_p(@h.path("_includes/home"))
+    @h.write("_includes/home/hero.html", "<section></section>\n")
+    @h.write("_includes/.hidden.html", "x")
+    File.binwrite(@h.path("_includes/logo.png"), "PNG\0data")
+    _, site = @h.get_json("/__jc/api/site")
+    assert_equal({ "layouts" => %w[_layouts/default.html _layouts/post.html _layouts/project.html],
+                   "includes" => %w[_includes/header.html _includes/home/hero.html] }, site["templates"])
+  end
+
+  def test_file_endpoint_language_and_mtime
+    _, res = @h.get_json("/__jc/api/file?file=_layouts/default.html")
+    assert_equal ["liquid-html", @h.read("_layouts/default.html"), File.mtime(@h.path("_layouts/default.html")).to_i],
+                 [res["language"], res["content"], res["mtime"]]
+    langs = { "_projects/alpha.md" => "markdown", "_data/nav.yml" => "yaml", "_config.yml" => "yaml" }
+    langs.each { |file, lang| assert_equal lang, @h.get_json("/__jc/api/file?file=#{file}")[1]["language"], file }
+    @h.write("assets.scss", "a { b: c }")
+    @h.write("notes.txt", "x")
+    assert_equal "scss", @h.get_json("/__jc/api/file?file=assets.scss")[1]["language"]
+    assert_equal "text", @h.get_json("/__jc/api/file?file=notes.txt")[1]["language"]
+    File.binwrite(@h.path("blob.bin"), "ab\0cd")
+    code, res = @h.get_json("/__jc/api/file?file=blob.bin")
+    assert_equal [422, "invalid"], [code, res["code"]]
+  end
+
+  def test_edit_file_writes_exact_content_and_rebuilds
+    old = @h.read("_includes/header.html")
+    new = old.sub("Hardcoded header text", "Edited header text")
+    build = @h.builder.build_id
+    code, res = @h.edit(op: "file", file: "_includes/header.html", old_content: old, new_content: new)
+    assert_equal 200, code, res.inspect
+    assert_equal [true, build + 1, nil], [res["ok"], res["build_id"], res["error"]]
+    assert_equal new, @h.read("_includes/header.html")
+    assert_equal ["M _includes/header.html"], @h.git("status", "--porcelain").lines.map(&:strip)
+    assert_includes @h.get("/", token: false).body, "Edited header text"
+    # no newline normalisation, CRLF kept
+    crlf = "<p>a</p>\r\n<p>b</p>"
+    code, = @h.edit(op: "file", file: "_includes/header.html", old_content: new, new_content: crlf)
+    assert_equal 200, code
+    assert_equal crlf, File.binread(@h.path("_includes/header.html"))
+  end
+
+  def test_edit_file_conflict_writes_nothing
+    before = @h.read("_includes/header.html")
+    code, res = @h.edit(op: "file", file: "_includes/header.html", old_content: "stale", new_content: "x")
+    assert_equal [409, "conflict"], [code, res["code"]]
+    assert_equal before, @h.read("_includes/header.html")
+  end
+
+  def test_edit_file_liquid_syntax_error_and_force
+    old = @h.read("_includes/header.html")
+    broken = "<p>hi</p>\n{% if x %}\n<p>never closed</p>\n"
+    code, res = @h.edit(op: "file", file: "_includes/header.html", old_content: old, new_content: broken)
+    assert_equal [422, "liquid_syntax", false], [code, res["code"], res["ok"]]
+    assert_kind_of Integer, res["line"]
+    assert_includes res["error"], "if"
+    assert_equal old, @h.read("_includes/header.html")
+    assert_empty @h.git("status", "--porcelain").lines
+
+    # line numbers are file lines, i.e. offset by the front matter
+    page_old = @h.read("about.html")
+    fm_lines = page_old[JekyllCanvas::FrontMatter::REGEXP].count("\n")
+    code, res = @h.edit(op: "file", file: "about.html", old_content: page_old, new_content: "#{page_old[JekyllCanvas::FrontMatter::REGEXP]}{% if x %}\n")
+    assert_equal 422, code
+    assert_operator res["line"], :>, fm_lines
+
+    code, res = @h.edit(op: "file", file: "_includes/header.html", old_content: old, new_content: broken, force: true)
+    assert_equal 200, code, res.inspect
+    assert_equal broken, @h.read("_includes/header.html")
+    refute_nil res["error"], "the build after a forced broken write reports its error"
+  end
+
+  def test_edit_file_front_matter_must_be_a_mapping
+    old = @h.read("about.html")
+    code, res = @h.edit(op: "file", file: "about.html", old_content: old, new_content: "---\n- a\n- b\n---\nbody\n")
+    assert_equal [422, "invalid"], [code, res["code"]]
+    assert_equal old, @h.read("about.html")
+  end
+
+  def test_edit_file_refuses_binary_missing_and_outside
+    File.binwrite(@h.path("blob.html"), "ab\0cd")
+    code, res = @h.edit(op: "file", file: "blob.html", old_content: "ab\0cd", new_content: "x")
+    assert_equal [422, "invalid"], [code, res["code"]]
+    code, = @h.edit(op: "file", file: "new-file.html", old_content: "", new_content: "x")
+    assert_equal 404, code
+    refute File.exist?(@h.path("new-file.html"))
+    code, res = @h.edit(op: "file", file: "../outside.html", old_content: "", new_content: "x")
+    assert_equal [403, "forbidden"], [code, res["code"]]
+    code, res = @h.edit(op: "file", file: ".git/config", old_content: "", new_content: "x")
+    assert_equal [403, "forbidden"], [code, res["code"]]
+  end
+
   # --- invariants ----------------------------------------------------------------------------------------------
 
   def test_site_folder_untouched_by_builds

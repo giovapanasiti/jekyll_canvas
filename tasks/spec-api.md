@@ -15,7 +15,8 @@ site files do not need the token.
 
 All API bodies are JSON (`Content-Type: application/json`), except media upload
 (multipart). Errors: HTTP 4xx/5xx with `{"ok":false,"error":"<message>","code":"<code>"}`.
-Codes: `forbidden`, `not_found`, `invalid`, `conflict`, `build_failed`, `git_failed`.
+Codes: `forbidden`, `not_found`, `invalid`, `conflict`, `build_failed`, `git_failed`, plus
+`liquid_syntax` (422, op `file` only, with an extra `line` field).
 
 Paths called `file` are always relative to the site root, with `/` separators (e.g.
 `_data/i18n/it.yml`, `_projects/it/frame.md`, `about.html`). The engine rejects any path
@@ -53,7 +54,11 @@ Forces a rebuild. Response like `/state` plus `"ok": true`.
       "items": [ { "file": "about.html", "title": "About", "lang": "en", "url": "/about/" } ] },
     { "id": "posts", "label": "Articoli", "collection": "posts", "can_create": true, "items": [] },
     { "id": "projects", "label": "Projects", "collection": "projects", "can_create": true, "items": [] }
-  ]
+  ],
+  "templates": {
+    "layouts":  ["_layouts/default.html", "_layouts/project.html"],
+    "includes": ["_includes/head.html", "_includes/home/hero.html"]
+  }
 }
 ```
 - `pages` = rendered pages whose output is `.html` (excluding pages with a `redirect` key
@@ -61,6 +66,8 @@ Forces a rebuild. Response like `/state` plus `"ok": true`.
 - One group per collection with `output: true` (posts first, sorted by date desc; other
   collections sorted by `order` then title). `label` = collection label humanised, `posts`
   → "Articoli".
+- `templates`: text files (no dotfiles, no binary) under the configured `layouts_dir` /
+  `includes_dir` (defaults `_layouts`, `_includes`), recursive, sorted.
 - Each item appears once per language it is rendered in. Items without `lang` (single-source
   pages) appear once per language with the corresponding url; `lang` is the language of
   that rendering.
@@ -166,6 +173,19 @@ after the write failed; the write is kept). On failure nothing is written.
    `{ "op": "front_matter_raw", "file": "_posts/x.md", "new_yaml": "title: X\n" }`
    - Must parse to a Hash, else 422 `invalid`.
 
+6. Whole file (code editor; layouts, includes, page sources, any existing text file):
+   `{ "op": "file", "file": "_layouts/default.html", "old_content": "…", "new_content": "…", "force": false }`
+   - `old_content` must equal the current file content, else 409 `conflict`. The file must
+     exist (no creation) and be text (no NUL byte in the first 8 KB), else 404 / 422 `invalid`.
+   - Unless `force: true`, files of language `liquid-html` or `markdown` get a Liquid check:
+     front matter is split off and the body parsed with `Liquid::Template.parse(body,
+     error_mode: :strict, line_numbers: true)`. A syntax error answers 422
+     `{ "ok": false, "code": "liquid_syntax", "error": "<message>", "line": <file line or null> }`
+     and writes nothing. Front matter that is not a YAML mapping answers 422 `invalid`.
+   - On success `new_content` is written byte for byte (no newline normalisation) and the
+     response is like the other ops; a failing build after the write sets `error`, the write
+     is kept.
+
 ## POST /__jc/api/new
 
 Request `{ "collection": "posts", "lang": "it", "title": "Il mio post", "slug": null, "date": "2026-10-17" }`
@@ -173,7 +193,10 @@ Request `{ "collection": "posts", "lang": "it", "title": "Il mio post", "slug": 
 (see spec-engine.md for the template rules). 409 if the file exists.
 
 ## GET /__jc/api/file?file=about.html
-`{ "file": "about.html", "content": "…" }`
+`{ "file": "about.html", "content": "…", "mtime": 1760700000, "language": "liquid-html" }`
+`language` by extension: `liquid-html` (`.html .htm .liquid .xml`), `markdown` (`.md
+.markdown`), `yaml` (`.yml .yaml`), `scss` (`.scss .sass .css`), `javascript` (`.js`), `json`
+(`.json`), else `text`. Binary files (NUL byte in the first 8 KB) answer 422 `invalid`.
 
 ## GET /__jc/api/media
 `{ "uploads_dir": "assets/img/uploads", "data": [ { "src": "/assets/img/blog/x.webp", "file": "assets/img/blog/x.webp", "name": "x.webp", "size": 12345, "mtime": 1760700000 } ] }`

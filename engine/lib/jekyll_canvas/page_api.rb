@@ -21,7 +21,7 @@ module JekyllCanvas
       {
         root: @root, name: File.basename(@root), title: info[:title] || File.basename(@root),
         languages: info[:languages], default_lang: info[:default_lang],
-        git: Git.new(@root).repo?, groups: groups(records, info)
+        git: Git.new(@root).repo?, groups: groups(records, info), templates: templates(info)
       }
     end
 
@@ -70,7 +70,9 @@ module JekyllCanvas
       abs = resolve(file)
       raise ApiError.new("not_found", "file not found") unless File.file?(abs)
 
-      { file: file, content: read(abs) }
+      raise ApiError.new("invalid", "binary files cannot be opened in the editor") if Paths.binary?(abs)
+
+      { file: file, content: read(abs), mtime: File.mtime(abs).to_i, language: Paths.language(file) }
     end
 
     private
@@ -89,6 +91,28 @@ module JekyllCanvas
       return true if string[:source] == "front_matter"
 
       %w[.yml .yaml].include?(File.extname(string[:file]).downcase)
+    end
+
+    # Text files under the layouts / includes directories, as site-relative paths.
+    def templates(info)
+      {
+        layouts: template_files(info[:layouts_dir].to_s.empty? ? "_layouts" : info[:layouts_dir]),
+        includes: template_files(info[:includes_dir].to_s.empty? ? "_includes" : info[:includes_dir])
+      }
+    end
+
+    def template_files(dir)
+      base = File.join(@root, dir)
+      return [] unless File.directory?(base) && Paths.inside?(@root, File.realpath(base))
+
+      Dir.glob("**/*", base: base).sort.filter_map do |rel|
+        next if rel.split("/").any? { |seg| seg.start_with?(".") }
+
+        abs = File.join(base, rel)
+        next unless File.file?(abs) && !Paths.binary?(abs)
+
+        "#{dir.sub(%r{/+\z}, '')}/#{rel}"
+      end
     end
 
     def groups(records, info)

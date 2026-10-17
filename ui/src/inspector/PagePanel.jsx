@@ -1,5 +1,6 @@
 import { useState } from 'preact/hooks';
 import { setState } from '../store.js';
+import { openCode } from '../actions.js';
 import { overlay } from '../overlay/index.js';
 
 function FileList({ title, files }) {
@@ -8,7 +9,13 @@ function FileList({ title, files }) {
   return (
     <div>
       <button class="link" onClick={() => setOpen(!open)}>{open ? '▾' : '▸'} {title} ({files.length})</button>
-      {open && <ul class="files mono">{files.map((f) => <li key={f}>{f}</li>)}</ul>}
+      {open && (
+        <ul class="files mono">
+          {files.map((f) => (
+            <li key={f}><button class="link file-link" title="Apri nel codice" onClick={() => openCode(f)}>{f}</button></li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -34,6 +41,9 @@ export function PagePanel({ page }) {
           ))}
         </div>
       )}
+      <button class="btn" style="margin-top:8px;width:100%" title="Cmd+Shift+E" onClick={() => openCode(page.file)}>
+        Modifica sorgente
+      </button>
       {page.format === 'markdown' && (
         <button class="btn primary" style="margin-top:8px;width:100%" onClick={() => setState({ bodyEditor: true })}>
           Modifica testo completo

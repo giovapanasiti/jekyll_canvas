@@ -93,7 +93,8 @@ module JekyllCanvas
         collections: site.collections.transform_values { |c| { output: c.write?, label: c.label } },
         kramdown: site.config["kramdown"] || {}, exclude: Array(site.config["exclude"]),
         include: Array(site.config["include"]), baseurl: site.config["baseurl"].to_s,
-        markdown_ext: site.config["markdown_ext"].to_s, collections_dir: site.config["collections_dir"].to_s
+        markdown_ext: site.config["markdown_ext"].to_s, collections_dir: site.config["collections_dir"].to_s,
+        layouts_dir: site.config["layouts_dir"].to_s, includes_dir: site.config["includes_dir"].to_s
       }
     end
 
