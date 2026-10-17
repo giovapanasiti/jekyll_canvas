@@ -12,6 +12,7 @@ require_relative "media"
 require_relative "new_document"
 require_relative "page_api"
 require_relative "paths"
+require_relative "trash"
 
 module JekyllCanvas
   # WEBrick server: editor UI at /__jc/, JSON API at /__jc/api/, the built site everywhere else.
@@ -21,7 +22,7 @@ module JekyllCanvas
 
     attr_reader :token, :port
 
-    def initialize(root:, builder:, watcher:, public_dir:, port: 0)
+    def initialize(root:, builder:, watcher:, public_dir:, port: 0, trash: Trash.new)
       @root = File.realpath(root)
       @builder = builder
       @watcher = watcher
@@ -30,6 +31,7 @@ module JekyllCanvas
       @edits = Edits.new(root: @root, builder: builder, watcher: watcher)
       @pages = PageApi.new(root: @root, builder: builder)
       @git = Git.new(@root)
+      @trash = trash
       @http = WEBrick::HTTPServer.new(
         BindAddress: "127.0.0.1", Port: port, AccessLog: [],
         Logger: WEBrick::Log.new($stderr, WEBrick::Log::WARN)
@@ -172,6 +174,7 @@ module JekyllCanvas
       when ["POST", "locate"] then locate(body_json(req))
       when ["POST", "edit"] then @edits.apply(body_json(req))
       when ["POST", "new"] then new_document(body_json(req))
+      when ["POST", "delete"] then delete_document(body_json(req))
       when ["GET", "file"] then @pages.file(query(req, "file"))
       when ["GET", "media"] then media.list
       when ["POST", "media"] then upload(req)
@@ -222,6 +225,30 @@ module JekyllCanvas
         record = @builder.records.find { |r| r.file == rel && r.lang == params["lang"].to_s } ||
                  @builder.records.find { |r| r.file == rel }
         { ok: true, file: rel, url: record&.url, build_id: @builder.build_id, error: @builder.error }
+      end
+    end
+
+    # Moves an article (post or collection document) to the system Trash, then rebuilds.
+    def delete_document(params)
+      file = params["file"].to_s
+      abs = resolve(file)
+      @builder.synchronize do
+        raise ApiError.new("not_found", "file not found") unless File.file?(abs)
+
+        rel = Paths.relative(@root, abs)
+        unless @builder.records.any? { |r| r.file == rel && r.kind == "document" && r.collection }
+          raise ApiError.new("invalid", "si possono eliminare solo articoli e documenti di collezioni")
+        end
+
+        @watcher&.ignore(abs)
+        begin
+          trashed_to = @trash.trash(abs)
+        ensure
+          @watcher&.acknowledge(abs)
+        end
+        ok = @builder.build
+        { ok: true, trashed_to: trashed_to, build_id: @builder.build_id, build_ms: @builder.last_build_ms,
+          error: ok ? nil : @builder.error }
       end
     end
 

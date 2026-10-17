@@ -57,6 +57,7 @@ export const api = {
   locate: (url, text) => post('/locate', { url, text }),
   edit: (op) => post('/edit', op),
   newDoc: (payload) => post('/new', payload),
+  deleteDoc: (file) => post('/delete', { file }),
   file: (file) => get('/file', { file }),
   media: () => get('/media'),
   upload: (file) => {

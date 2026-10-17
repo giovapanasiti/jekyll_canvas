@@ -18,6 +18,7 @@ let state = {
   // modal state
   bodyEditor: false,
   codeEditor: null, // { file, line, nonce }
+  codeDrop: null, // { file, nonce }: a file deleted on disk, to forget in the code editor
   newDoc: null, // { collection, label }
   changesOpen: false,
   media: null, // { resolve }

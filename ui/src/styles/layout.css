@@ -36,6 +36,10 @@
 .item { display: flex; align-items: center; gap: 6px; padding: 5px 10px 5px 24px; cursor: pointer; border-left: 2px solid transparent; }
 .item:hover { background: var(--surface-2); }
 .item.active { background: #2f2f4f; border-left-color: var(--primary); }
+.item .item-del { width: 22px; height: 22px; flex: none; opacity: 0; margin-right: -4px; }
+.item .item-del svg { width: 14px; height: 14px; }
+.item:hover .item-del, .item .item-del:focus-visible { opacity: 1; }
+.item .item-del:hover:not(:disabled), .item .item-del:focus-visible { color: var(--danger); }
 .item .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sub-head { padding: 6px 10px 2px 24px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); opacity: .75; }
 .badge { font-size: 10px; text-transform: uppercase; padding: 0 5px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border); color: var(--muted); line-height: 16px; }

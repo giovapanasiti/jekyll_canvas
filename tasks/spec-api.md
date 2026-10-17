@@ -192,6 +192,21 @@ Request `{ "collection": "posts", "lang": "it", "title": "Il mio post", "slug": 
 → `{ "ok": true, "file": "_posts/it/2026-10-17-il-mio-post.md", "url": "/it/blog/il-mio-post/" }`
 (see spec-engine.md for the template rules). 409 if the file exists.
 
+## POST /__jc/api/delete
+
+Request `{ "file": "_posts/2026-10-17-x.md" }` → moves the file to the system Trash, rebuilds,
+`{ "ok": true, "trashed_to": "/Users/me/.Trash/2026-10-17-x.md", "build_id": 12, "build_ms": 840, "error": null }`.
+- Only documents of a collection (posts included) as of the last build can be deleted; any
+  other file (pages, layouts, data...) answers 422 `invalid`. A missing file is 404; the usual
+  path rules apply (403 outside the site, in `.git/` or in the build cache).
+- macOS: moved to `~/.Trash` (a taken name becomes `<stem> HH.MM.SS[-n]<ext>`). Elsewhere:
+  `gio trash` when `gio` is on PATH (`trashed_to` is `trash:///<name>`), else the freedesktop.org
+  home trash `${XDG_DATA_HOME:-~/.local/share}/Trash/{files,info}` with a `.trashinfo` written
+  before the move. If trashing fails the answer is 422 `invalid` and the file stays: it is
+  never deleted permanently.
+- Images and other files referenced by the article are not touched. In a git site the file
+  shows as `D`; `POST /git/discard` restores it.
+
 ## GET /__jc/api/file?file=about.html
 `{ "file": "about.html", "content": "…", "mtime": 1760700000, "language": "liquid-html" }`
 `language` by extension: `liquid-html` (`.html .htm .liquid .xml`), `markdown` (`.md

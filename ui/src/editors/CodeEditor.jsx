@@ -52,6 +52,8 @@ export function CodeEditorHost() {
 function CodeEditor({ request }) {
   const page = useStore((s) => s.page);
   const site = useStore((s) => s.site);
+  const drop = useStore((s) => s.codeDrop);
+  const seenDrop = useRef(drop?.nonce); // a drop from before this editor opened is stale
   const host = useRef(null);
   const view = useRef(null);
   const entries = useRef(new Map()); // file -> { file, language, loaded, mtime, state, dirty, bar }
@@ -137,6 +139,21 @@ function CodeEditor({ request }) {
   }, []);
 
   useEffect(() => { open(request.file, request.line); }, [request.nonce]);
+
+  // A file deleted from the site: forget it, show another open file or close the editor.
+  useEffect(() => {
+    if (!drop || drop.nonce === seenDrop.current) return;
+    seenDrop.current = drop.nonce;
+    entries.current.delete(drop.file);
+    if (currentRef.current?.file === drop.file || (!currentRef.current && request.file === drop.file)) {
+      currentRef.current = null;
+      setCurrent(null);
+      const next = entries.current.values().next().value;
+      if (next) show(next);
+      else setState({ codeEditor: null });
+    }
+    rerender();
+  }, [drop?.nonce]);
 
   const docOf = (entry) => (entry === currentRef.current ? view.current.state.doc : entry.state.doc).toString();
   const dirtyFiles = () => [...entries.current.values()].filter((e) => e.dirty).map((e) => e.file);

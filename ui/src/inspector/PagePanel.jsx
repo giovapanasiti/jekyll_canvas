@@ -1,7 +1,8 @@
 import { useState } from 'preact/hooks';
 import { setState } from '../store.js';
-import { openCode } from '../actions.js';
+import { deleteDocument, openCode } from '../actions.js';
 import { overlay } from '../overlay/index.js';
+import { IconTrash } from '../components/icons.jsx';
 
 function FileList({ title, files }) {
   const [open, setOpen] = useState(false);
@@ -47,6 +48,14 @@ export function PagePanel({ page }) {
       {page.format === 'markdown' && (
         <button class="btn primary" style="margin-top:8px;width:100%" onClick={() => setState({ bodyEditor: true })}>
           Modifica testo completo
+        </button>
+      )}
+      {page.kind === 'document' && (
+        <button
+          class="btn danger" style="margin-top:8px;width:100%"
+          onClick={() => deleteDocument({ file: page.file, title: page.title })}
+        >
+          <IconTrash /> Elimina…
         </button>
       )}
     </section>

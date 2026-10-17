@@ -9,10 +9,12 @@ require "jekyll_canvas"
 class Harness
   FIXTURE = File.expand_path("../fixtures/site", __dir__)
 
-  attr_reader :root, :cache, :builder, :server, :watcher
+  attr_reader :root, :cache, :builder, :server, :watcher, :trash_dir
 
+  # The server trashes into a temp dir (macOS layout) so tests never touch the real Trash.
   def initialize
     @tmp = Dir.mktmpdir("jc-test")
+    @trash_dir = File.join(@tmp, "trash")
     @root = File.join(@tmp, "site")
     @cache = File.join(@tmp, "cache")
     FileUtils.cp_r(FIXTURE, @root)
@@ -24,7 +26,8 @@ class Harness
     @builder = JekyllCanvas::Builder.new(root: @root, cache_dir: @cache)
     @watcher = JekyllCanvas::Watcher.new(root: @root, builder: @builder)
     public_dir = File.expand_path("../../public", __dir__)
-    @server = JekyllCanvas::Server.new(root: @root, builder: @builder, watcher: @watcher, public_dir: public_dir, port: 0)
+    @server = JekyllCanvas::Server.new(root: @root, builder: @builder, watcher: @watcher, public_dir: public_dir, port: 0,
+                                         trash: JekyllCanvas::Trash.new(platform: "arm64-darwin", mac_trash: @trash_dir))
     @server.start_in_background
   end
 

@@ -2,7 +2,7 @@
 import { api } from '../api.js';
 import { getState, setState } from '../store.js';
 import {
-  applyEdit, closeChooser, promptDialog, setReloader, showChooser, toast,
+  applyEdit, closeChooser, promptDialog, setNavigator, setReloader, showChooser, toast,
 } from '../actions.js';
 import { keyOf, normalize, normalizeMap, rawRange, isMod } from '../util.js';
 import { injectStyle } from './style.js';
@@ -30,6 +30,7 @@ export class OverlayController {
     this.iframe = iframe;
     iframe.addEventListener('load', () => this.onLoad());
     setReloader(() => this.reload());
+    setNavigator((url) => this.navigate(url));
     iframe.src = getState().currentUrl; // set after the load listener exists
   }
 

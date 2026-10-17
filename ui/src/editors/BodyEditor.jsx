@@ -5,9 +5,9 @@ import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame-dark.css';
 import { api } from '../api.js';
 import { useStore, setState, getState } from '../store.js';
-import { applyEdit, confirmDialog, toast } from '../actions.js';
+import { applyEdit, confirmDialog, deleteDocument, toast } from '../actions.js';
 import { isMod } from '../util.js';
-import { IconClose } from '../components/icons.jsx';
+import { IconClose, IconTrash } from '../components/icons.jsx';
 
 // WYSIWYG pane: owns one Crepe instance; reports every markdown change.
 function VisualPane({ initial, onChange, onReady }) {
@@ -118,6 +118,11 @@ function Editor({ page }) {
           <button class={mode === 'source' ? 'active' : ''} onClick={() => switchTo('source')}>Sorgente</button>
         </div>
         <button class="btn primary" disabled={busy} onClick={save}>{busy ? <span class="spinner" /> : 'Salva'}</button>
+        {page.kind === 'document' && (
+          <button class="btn danger" disabled={busy} onClick={() => deleteDocument({ file: page.file, title: page.title, discard: dirty })}>
+            <IconTrash /> Elimina
+          </button>
+        )}
         <button class="btn" onClick={close}><IconClose style="width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2" /> Chiudi</button>
       </header>
       <div class="be-body">

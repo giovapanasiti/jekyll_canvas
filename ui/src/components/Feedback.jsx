@@ -57,7 +57,7 @@ export function DialogHost() {
           onKeyDown={(e) => { if (e.key === 'Enter') done(e.currentTarget.value); }}
         />
       ) : (
-        <p style="margin:0">{dialog.text}</p>
+        <p style="margin:0;white-space:pre-line">{dialog.text}</p>
       )}
     </Modal>
   );

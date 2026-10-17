@@ -1,9 +1,9 @@
 import { useState } from 'preact/hooks';
 import { useStore, setState } from '../store.js';
 import { overlay } from '../overlay/index.js';
-import { openCode } from '../actions.js';
+import { deleteDocument, openCode } from '../actions.js';
 import { normUrl } from '../util.js';
-import { IconPlus } from './icons.jsx';
+import { IconPlus, IconTrash } from './icons.jsx';
 
 function Group({ group, query, currentUrl, multiLang, currentLang }) {
   const [open, setOpen] = useState(true);
@@ -39,6 +39,17 @@ function Group({ group, query, currentUrl, multiLang, currentLang }) {
         >
           <span class="title">{item.title || item.file}</span>
           {multiLang && item.lang && <span class="badge">{item.lang}</span>}
+          {group.collection && (
+            <button
+              class="icon-btn item-del" title="Elimina" aria-label={`Elimina ${item.title || item.file}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                deleteDocument({ file: item.file, title: item.title });
+              }}
+            >
+              <IconTrash />
+            </button>
+          )}
         </div>
       ))}
     </section>
