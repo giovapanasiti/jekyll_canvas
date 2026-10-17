@@ -1,0 +1,19 @@
+# English strings
+site:
+  name: Fixture Co
+  tagline: "Small team, big results"
+home:
+  hero:
+    title: We build AI products   # keep this comment
+    subtitle: 'Talk to us today'
+  about_text: |
+    A literal block
+    with two lines.
+  items:
+    - name: Alpha item
+      note: First note
+    - name: Beta item
+      note: Second note
+  tags:
+    - ruby
+    - rails

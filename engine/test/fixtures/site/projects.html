@@ -1,0 +1,13 @@
+---
+layout: default
+title: Projects
+permalink: /projects/
+---
+<h1>Projects</h1>
+{% for p in site.projects %}{% if p.lang == site.active_lang %}
+<section class="card">
+  <h2>{{ p.title }}</h2>
+  <div class="excerpt">{{ p.excerpt }}</div>
+  <div class="full">{{ p.content | markdownify }}</div>
+</section>
+{% endif %}{% endfor %}

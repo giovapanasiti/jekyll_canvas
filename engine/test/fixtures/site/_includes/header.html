@@ -1,0 +1,8 @@
+<header>
+  <p class="brand">Hardcoded header text</p>
+  <nav>
+    {% for item in site.data.nav %}
+    <a href="{{ item.url }}">{{ item.label[site.active_lang] }}</a>
+    {% endfor %}
+  </nav>
+</header>

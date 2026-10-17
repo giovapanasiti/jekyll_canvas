@@ -1,0 +1,17 @@
+---
+layout: default
+title: Home
+---
+{% assign t = site.data.i18n[site.active_lang] %}
+<section class="hero">
+  <h1>{{ t.home.hero.title }}</h1>
+  <p>{{ t.home.hero.subtitle }}</p>
+</section>
+<section>
+  <div class="about">{{ t.home.about_text | markdownify }}</div>
+  <ul>
+  {% for item in t.home.items %}
+    <li>{{ item.name }} - {{ item.note }}</li>
+  {% endfor %}
+  </ul>
+</section>

@@ -55,6 +55,7 @@ final class EngineProcess {
         var env = ProcessInfo.processInfo.environment
         env["JC_SITE"] = sitePath
         env["JC_ENGINE"] = EngineProcess.engineDir()
+        env["JC_EXIT_ON_STDIN_EOF"] = "1"
 
         process.executableURL = URL(fileURLWithPath: "/bin/zsh")
         process.arguments = ["-lc", script]

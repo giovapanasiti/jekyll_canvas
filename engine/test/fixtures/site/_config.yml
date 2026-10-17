@@ -1,0 +1,30 @@
+title: "Fixture Site"
+url: "https://example.test"
+baseurl: ""
+
+languages: ["en", "it"]
+default_lang: "en"
+
+permalink: pretty
+markdown: kramdown
+kramdown:
+  input: GFM
+
+collections:
+  projects:
+    output: true
+
+defaults:
+  - scope:
+      path: ""
+      type: projects
+    values:
+      layout: project
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: post
+
+plugins:
+  - jekyll-polyglot

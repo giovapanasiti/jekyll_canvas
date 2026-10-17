@@ -22,7 +22,9 @@ function matchNode(norm, strings) {
       from = idx + nv.length;
       const end = idx + nv.length;
       const whole = norm.text.length === nv.length;
-      const ok = whole || nv.length >= 12 || (nv.length >= 4 && wordBoundary(norm.text, idx, end));
+      // Single words (often lookup keys like nav `key: software`) only match a whole text node.
+      const multiWord = /\s/.test(nv);
+      const ok = whole || (multiWord && wordBoundary(norm.text, idx, end) && nv.length >= 6);
       if (!ok) continue;
       if (found.some((f) => idx < f.nEnd && end > f.nStart)) continue;
       const r = rawRange(norm, idx, end);

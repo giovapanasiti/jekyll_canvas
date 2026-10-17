@@ -1,0 +1,15 @@
+<!doctype html>
+{% assign t = site.data.i18n[site.active_lang] %}
+<html lang="{{ site.active_lang }}">
+<head>
+  <meta charset="utf-8">
+  <title>{{ page.title }} | {{ t.site.name }}</title>
+</head>
+<body>
+{% include header.html %}
+<main>
+{{ content }}
+</main>
+<footer><p>{{ t.site.tagline }}</p><p>Hardcoded footer words</p></footer>
+</body>
+</html>

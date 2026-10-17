@@ -1,0 +1,10 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# Jekyll Canvas engine. Run inside the site's bundle:
+#   bundle exec ruby -I<engine>/lib <engine>/exe/jekyll-canvas-server --site PATH
+$LOAD_PATH.unshift File.expand_path("../lib", __dir__)
+
+require "jekyll_canvas/cli"
+
+exit JekyllCanvas::CLI.run(ARGV)

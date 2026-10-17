@@ -1,0 +1,11 @@
+# frozen_string_literal: true
+
+source "https://rubygems.org"
+
+# Development/test bundle only. At runtime the engine runs inside the SITE's bundle.
+gem "jekyll", "~> 4.4"
+gem "jekyll-polyglot", "~> 1.14"
+gem "webrick"
+gem "kramdown-parser-gfm"
+gem "minitest"
+gem "rake"

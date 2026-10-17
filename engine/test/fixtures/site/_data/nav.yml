@@ -1,0 +1,8 @@
+- url: /
+  label:
+    en: Home
+    it: Inizio
+- url: /about/
+  label:
+    en: About us
+    it: Chi siamo

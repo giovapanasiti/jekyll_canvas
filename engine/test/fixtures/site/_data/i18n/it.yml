@@ -1,0 +1,19 @@
+# Stringhe italiane
+site:
+  name: Fixture Srl
+  tagline: "Piccolo team, grandi risultati"
+home:
+  hero:
+    title: Costruiamo prodotti AI   # tieni questo commento
+    subtitle: 'Parlaci oggi'
+  about_text: |
+    Un blocco letterale
+    con due righe.
+  items:
+    - name: Elemento alfa
+      note: Prima nota
+    - name: Elemento beta
+      note: Seconda nota
+  tags:
+    - ruby
+    - rails

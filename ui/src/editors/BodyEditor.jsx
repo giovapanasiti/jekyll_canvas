@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { Crepe } from '@milkdown/crepe';
+import { remarkStringifyOptionsCtx } from '@milkdown/kit/core';
 import '@milkdown/crepe/theme/common/style.css';
 import '@milkdown/crepe/theme/frame-dark.css';
 import { api } from '../api.js';
@@ -21,6 +22,10 @@ function VisualPane({ initial, onChange, onReady }) {
           onUpload: async (file) => (await api.upload(file)).src,
         },
       },
+    });
+    // Match the house style of hand-written Jekyll Markdown to keep diffs small.
+    crepe.editor.config((ctx) => {
+      ctx.update(remarkStringifyOptionsCtx, (prev) => ({ ...prev, bullet: '-', emphasis: '*', strong: '*', rule: '-' }));
     });
     crepe.on((l) => l.markdownUpdated((_ctx, md) => onChange(md)));
     let alive = true;
